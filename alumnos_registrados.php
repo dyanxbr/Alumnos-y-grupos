@@ -121,19 +121,19 @@ const API_URL = "https://api-alumnos-production-cdcc.up.railway.app/api";
    CAMBIAR ESTATUS
 ========================= */
 async function cambiarEstatus(id) {
-    try {
-        const res = await fetch(`${API_URL}/alumnos/${id}/estatus`, {
-            method: 'PATCH',
-            headers: {'Content-Type':'application/json'}
-        });
-        const data = await res.json();
-        if (data.success) location.reload();
-        else alert('No se pudo actualizar');
-    } catch (e) {
-        console.error(e);
-        alert('Error de conexión con la API');
-    }
+    const form = new FormData();
+    form.append('id', id);
+
+    const res = await fetch('toggle_alumno.php', {
+        method: 'POST',
+        body: form
+    });
+
+    const data = await res.json();
+    if (data.success) location.reload();
+    else alert('Error');
 }
+
 </script>
 
 </body>
