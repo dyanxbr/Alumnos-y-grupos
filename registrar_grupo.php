@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-// --- 1. CONFIGURACIÓN Y API ---
-define('API_URL', 'http://localhost:3000/api');
+// --- CONEXIÓN API ---
+define('API_URL', 'https://api-alumnos-production-cdcc.up.railway.app/api');
 
 function pedir_api($endpoint) {
     $ch = curl_init(API_URL . '/' . $endpoint);
@@ -91,7 +91,7 @@ $api_online = ($data !== null);
                             <select name="id_grado" id="id_grado" class="form-select" required onchange="verificarTurno()">
                                 <option value="">Seleccione...</option>
                                 <?php foreach($grados as $g): ?>
-                                    <option value="<?php echo $g['id_grado']; ?>" data-numero="<?php echo $g['numero_grado']; ?>"><?php echo $g['numero_grado']; ?>° Semestre</option>
+                                    <option value="<?php echo $g['id_grado']; ?>" data-numero="<?php echo $g['numero_grado']; ?>"><?php echo $g['numero_grado']; ?>° Cuatrimestre</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

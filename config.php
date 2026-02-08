@@ -1,37 +1,50 @@
 <?php
-// config.php - EL PUENTE ENTRE PHP Y NODE.JS
+// config.php
+// PUENTE ENTRE PHP (Frontend) Y NODE.JS (API)
 
-// Definimos dónde está escuchando el Chef (Node.js)
-define('API_URL', 'http://localhost:3000/api');
+// --- URL BASE DE LA API (Railway) ---
+define('API_URL', 'https://api-alumnos-production-cdcc.up.railway.app/api');
 
-// Función maestra para hacer pedidos (GET, POST, PUT, PATCH)
-function pedir_api($endpoint, $metodo = 'GET', $datos = []) {
-    // Iniciamos la llamada (cURL)
-    $ch = curl_init(API_URL . $endpoint);
-    
-    // Configuración básica
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    // Si no es GET, configuramos los datos a enviar
-    if ($metodo !== 'GET') {
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $metodo);
+// --- FUNCIÓN CENTRAL PARA CONSUMIR LA API ---
+function pedir_api(string $endpoint, string $metodo = 'GET', array $datos = [])
+{
+    $url = rtrim(API_URL, '/') . '/' . ltrim($endpoint, '/');
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_CUSTOMREQUEST => $metodo,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ]
+    ]);
+
+    // Enviar cuerpo solo si NO es GET
+    if ($metodo !== 'GET' && !empty($datos)) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($datos));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json'
-        ]);
     }
-    
-    // Ejecutar y cerrar
+
     $respuesta = curl_exec($ch);
-    
-    // Verificar si Node.js está apagado
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
     if ($respuesta === false) {
-        die('Error: No se pudo conectar con la API (Node.js). ¿Está encendida la terminal negra?');
+        curl_close($ch);
+        return null; // API no disponible
     }
-    
+
     curl_close($ch);
-    
-    // Devolver los datos como Array de PHP
+
+    // Respuesta válida pero con error HTTP
+    if ($http_code < 200 || $http_code >= 300) {
+        return [
+            'error' => 'Error API',
+            'status' => $http_code,
+            'response' => json_decode($respuesta, true)
+        ];
+    }
+
     return json_decode($respuesta, true);
 }
-?>
