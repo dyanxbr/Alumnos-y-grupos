@@ -1,223 +1,281 @@
 <?php
-$apiUrl = 'http://localhost:3000/api'; 
+session_start();
 
-$carreras = [];
-$turnos = [];
-$grados = [];
+// --- CONEXIÓN API ---
+define('API_URL', 'https://api-alumnos-production-cdcc.up.railway.app/api');
 
-try {
-    $carrerasData = @file_get_contents($apiUrl . '/carreras');
-    $turnosData = @file_get_contents($apiUrl . '/turnos');
-    $gradosData = @file_get_contents($apiUrl . '/grados');
 
-    if ($carrerasData !== false) $carreras = json_decode($carrerasData, true) ?? [];
-    if ($turnosData !== false) $turnos = json_decode($turnosData, true) ?? [];
-    if ($gradosData !== false) $grados = json_decode($gradosData, true) ?? [];
-
-} catch (Exception $e) {
-    $carreras = [];
-    $turnos = [];
-    $grados = [];
+function pedir_api($endpoint) {
+    $ch = curl_init(API_URL . '/' . $endpoint);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 2); // Espera máximo 2 segundos
+    $data = curl_exec($ch);
+    curl_close($ch);
+    
+    // Si no hay respuesta (API apagada), devolvemos null
+    if ($data === false) return null;
+    
+    return json_decode($data, true);
 }
+
+// --- OBTENCIÓN DE DATOS SEGURA ---
+$data_grupos = pedir_api('grupos');
+$data_alumnos = pedir_api('alumnos');
+
+// CORRECCIÓN: Verificamos si es un array antes de usar count()
+// Si $data_grupos es null, ponemos 0 y evitamos el error.
+$total_grupos = is_array($data_grupos) ? count($data_grupos) : 0;
+$total_alumnos = is_array($data_alumnos) ? count($data_alumnos) : 0;
+
+// Detectar si la API está en línea (Si devolvió algo distinto a null)
+$api_online = ($data_grupos !== null);
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Grupo - SisEscolar</title>
+    <title>SisEscolar - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --navy: #001f3f;
-            --bone: #f5f5dc;
-            --light-navy: #003366;
-            --alert: #ff4136;
+            --bg-canvas: #f4f4f0;      /* Color Hueso/Papel */
+            --navy-solid: #0f172a;     /* Azul Marino Profundo */
+            --navy-light: #334155;     /* Gris Azulado */
+            --gold-line: #d97706;      /* Línea dorada */
+            --white: #ffffff;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bone);
-            color: var(--navy);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            background-color: var(--bg-canvas);
+            color: var(--navy-solid);
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            transform: scale(0.9);
-            transform-origin: top center;
         }
 
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 700px;
-            border-top: 5px solid var(--navy);
+        h1, h2, h3, h4, .serif-title {
+            font-family: 'Playfair Display', serif;
         }
 
-        h1 {
-            text-align: center;
-            color: var(--navy);
-            margin-bottom: 5px;
+        /* HEADER MINIMALISTA */
+        .app-header {
+            padding: 2.5rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.05);
         }
 
-        .fecha-actual {
-            text-align: right;
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 20px;
-            font-style: italic;
+        .brand-name {
+            font-size: 1.8rem;
+            text-decoration: none;
+            color: var(--navy-solid);
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
+        
+        .brand-box {
+            width: 40px; 
+            height: 40px; 
+            background: var(--navy-solid); 
+            color: var(--bg-canvas);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif;
             font-weight: bold;
         }
 
-        select, input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1em;
+        /* --- COLUMNA IZQUIERDA (EL "TWO") --- */
+        .static-card {
+            background: var(--white);
+            border: 1px solid rgba(0,0,0,0.05);
+            padding: 2.5rem;
+            height: 100%;
+            transition: border-color 0.2s ease;
+            position: relative;
         }
 
-        select:focus, input:focus {
-            border-color: var(--navy);
-            outline: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--navy);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1.1em;
+        .static-card:hover {
+            border-color: var(--navy-solid);
             cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 10px;
         }
 
-        button:hover {
-            background-color: var(--light-navy);
+        .icon-frame {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--navy-solid);
+            display: inline-block;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--gold-line);
         }
 
-        .alert-box {
-            background-color: #ffebee;
-            color: var(--alert);
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: none;
-            border-left: 4px solid var(--alert);
-            font-size: 0.9em;
+        .card-head { font-size: 1.25rem; margin-bottom: 0.5rem; font-weight: 600; }
+        .card-body-text { font-size: 0.95rem; color: var(--navy-light); line-height: 1.6; }
+
+        .static-arrow {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            color: var(--navy-light);
+            font-size: 1.2rem;
+        }
+        
+        .static-card:hover .static-arrow {
+            color: var(--navy-solid);
         }
 
-        @media (max-width: 600px) {
-            body {
-                transform: none; 
-                padding: 10px;
-            }
+        /* --- COLUMNA DERECHA (EL "ONE") --- */
+        .sidebar-panel {
+            background-color: var(--navy-solid);
+            color: var(--bg-canvas);
+            padding: 2.5rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
+
+        .date-big {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 0;
+        }
+        .date-month {
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 3rem;
+            display: block;
+        }
+
+        .stat-row {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .stat-val { font-size: 2.5rem; font-family: 'Playfair Display', serif; }
+        .stat-lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; }
+
+        .status-dot {
+            width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 8px;
+        }
+
+        a { text-decoration: none; color: inherit; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Registrar Nuevo Grupo</h1>
-    <div class="fecha-actual" id="fechaDisplay"></div>
+    <header class="container app-header">
+        <a href="index.php" class="brand-name">
+            <div class="brand-box">S</div>
+            <span class="serif-title">SisEscolar</span>
+        </a>
+    </header>
 
-    <form action="procesar_grupo.php" method="POST">
-        <div class="form-group">
-            <label for="nombre_grupo">Nombre del Grupo:</label>
-            <input type="text" id="nombre_grupo" name="nombre_grupo" required placeholder="Ej. 1-A">
-        </div>
-
-        <div class="form-group">
-            <label for="carrera">Carrera:</label>
-            <select id="carrera" name="carrera_id" required>
-                <option value="">Seleccione una carrera...</option>
-                <?php foreach ($carreras as $carrera): ?>
-                    <option value="<?= htmlspecialchars($carrera['id']) ?>">
-                        <?= htmlspecialchars($carrera['nombre']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="grado">Grado:</label>
-            <select id="grado" name="grado_id" required onchange="verificarTurno()">
-                <option value="">Seleccione un grado...</option>
-                <?php foreach ($grados as $grado): ?>
-                    <option value="<?= htmlspecialchars($grado['id']) ?>" data-nivel="<?= htmlspecialchars($grado['nivel']) ?>">
-                        <?= htmlspecialchars($grado['nombre']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="turno">Turno:</label>
-            <select id="turno" name="turno_id" required>
-                <option value="">Seleccione un turno...</option>
-                <?php foreach ($turnos as $turno): ?>
-                    <option value="<?= htmlspecialchars($turno['id']) ?>">
-                        <?= htmlspecialchars($turno['nombre']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div id="turnoAlerta" class="alert-box">
-            Nota: Para grados superiores (7° en adelante), el turno se asignará automáticamente a Vespertino según el reglamento.
-        </div>
-
-        <button type="submit">Guardar Grupo</button>
-    </form>
-</div>
-
-<script>
-    const fecha = new Date();
-    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const fechaFormateada = fecha.toLocaleDateString('es-MX', opciones);
-    
-    document.getElementById('fechaDisplay').textContent = 
-        fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
-
-    function verificarTurno() {
-        const gradoSelect = document.getElementById('grado');
-        const turnoSelect = document.getElementById('turno');
-        const alerta = document.getElementById('turnoAlerta');
+    <main class="container pb-5">
         
-        const selectedOption = gradoSelect.options[gradoSelect.selectedIndex];
-        const nivel = selectedOption.getAttribute('data-nivel'); 
-        
-        if (nivel && parseInt(nivel) >= 7) {
-            alerta.style.display = 'block';
+        <?php if (!$api_online): ?>
+            <div class="alert alert-danger mb-4 rounded-0 border-0">
+                <i class="fas fa-exclamation-triangle me-2"></i> 
+                <strong>Sin conexión:</strong> No se detecta la API de Node.js en ejecución. Asegúrate de correr <code>node index.js</code>.
+            </div>
+        <?php endif; ?>
+
+        <div class="row g-0">
             
-            for (let i = 0; i < turnoSelect.options.length; i++) {
-                if (turnoSelect.options[i].text.toLowerCase().includes('vespertino')) {
-                    turnoSelect.selectedIndex = i;
-                    break;
-                }
-            }
-        } else {
-            alerta.style.display = 'none';
-        }
-    }
-</script>
+            <div class="col-lg-8 pe-lg-5">
+                
+                <h4 class="serif-title mb-4">Panel de Gestión</h4>
+
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <a href="registrar_grupo.php">
+                            <div class="static-card">
+                                <i class="fas fa-shapes icon-frame"></i>
+                                <div class="card-head serif-title">Grupos</div>
+                                <p class="card-body-text">Configura aulas, grados y turnos.</p>
+                                <i class="fas fa-arrow-right static-arrow"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-6">
+                        <a href="registrar_alumno.php">
+                            <div class="static-card">
+                                <i class="fas fa-user-graduate icon-frame"></i>
+                                <div class="card-head serif-title">Alumnos</div>
+                                <p class="card-body-text">Registro de nuevos estudiantes.</p>
+                                <i class="fas fa-arrow-right static-arrow"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-6">
+                        <a href="gestion_carreras.php">
+                            <div class="static-card">
+                                <i class="fas fa-university icon-frame"></i>
+                                <div class="card-head serif-title">Oferta Académica</div>
+                                <p class="card-body-text">Activar o desactivar carreras del plan.</p>
+                                <i class="fas fa-arrow-right static-arrow"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-6">
+                        <a href="alumnos_registrados.php">
+                            <div class="static-card">
+                                <i class="fas fa-th-list icon-frame"></i>
+                                <div class="card-head serif-title">Directorio</div>
+                                <p class="card-body-text">Consulta y edición de matrícula.</p>
+                                <i class="fas fa-arrow-right static-arrow"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mt-5 mt-lg-0">
+                <div class="sidebar-panel">
+                    
+                    <div>
+                        <div class="date-big"><?php echo date('d'); ?></div>
+                        <span class="date-month"><?php echo date('F Y'); ?></span>
+                    </div>
+
+                    <div>
+                        <div class="stat-row">
+                            <div class="stat-val"><?php echo $total_alumnos; ?></div>
+                            <span class="stat-lbl">Estudiantes Activos</span>
+                        </div>
+
+                        <div class="stat-row">
+                            <div class="stat-val"><?php echo $total_grupos; ?></div>
+                            <span class="stat-lbl">Grupos Abiertos</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-top border-opacity-10" style="border-color: rgba(255,255,255,0.1) !important;">
+                        <small style="opacity: 0.5; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Estado de Conexión</small>
+                        <div class="mt-2 d-flex align-items-center" style="font-size: 0.85rem;">
+                            <span class="status-dot" style="background-color: <?php echo $api_online ? '#4ade80' : '#f87171'; ?>;"></span>
+                            API Node.js
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="container text-center py-5 mt-5 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
+        <small class="text-muted">SisEscolar © <?php echo date('Y'); ?></small>
+    </footer>
 
 </body>
 </html>
