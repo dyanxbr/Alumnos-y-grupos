@@ -94,6 +94,5 @@ $api_online = (count($grupos) > 0 || $grupos !== null);
             </div>
         </div>
     </main>
-    <footer class="container text-center py-5 mt-5 border-top" style="border-color: rgba(0,0,0,0.05) !important;"><small class="text-muted">SisEscolar © <?php echo date('Y'); ?></small></footer>
 </body>
 </html>

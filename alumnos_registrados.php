@@ -255,7 +255,6 @@ if(is_array($alumnos)) {
     </main>
 
     <footer class="container text-center py-5 mt-5 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
-        <small class="text-muted">SisEscolar © <?=date('Y')?></small>
     </footer>
 
     <div class="modal fade" id="modalEditar" tabindex="-1">

@@ -244,7 +244,14 @@ $api_online = ($data_grupos !== null);
                     
                     <div>
                         <div class="date-big"><?php echo date('d'); ?></div>
-                        <span class="date-month"><?php echo date('F Y'); ?></span>
+
+                    <span class="date-month">
+                        <?php 
+                            $meses = array("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre");
+                            $mes_actual = $meses[date('n')-1];
+                            echo $mes_actual . ' ' . date('Y'); 
+                        ?>
+                    </span>
                     </div>
 
                     <div>
@@ -274,7 +281,6 @@ $api_online = ($data_grupos !== null);
     </main>
 
     <footer class="container text-center py-5 mt-5 border-top" style="border-color: rgba(0,0,0,0.05) !important;">
-        <small class="text-muted">SisEscolar © <?php echo date('Y'); ?></small>
     </footer>
 
 </body>

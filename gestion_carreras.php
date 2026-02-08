@@ -209,9 +209,6 @@ $lista_carreras = pedir_api('/carreras-todas');
     </div>
 </main>
 
-<footer class="container text-center py-4 mt-5 border-top">
-    <small class="text-muted">SisEscolar © <?= date('Y') ?></small>
-</footer>
 
 <script>
 async function toggleCarrera(id) {
