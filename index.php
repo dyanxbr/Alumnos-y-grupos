@@ -2,7 +2,8 @@
 session_start();
 
 // --- CONEXIÓN API ---
-define('API_URL', 'http://localhost:3000/api');
+define('API_URL', 'https://api-alumnos-production-cdcc.up.railway.app/api');
+
 
 function pedir_api($endpoint) {
     $ch = curl_init(API_URL . '/' . $endpoint);
